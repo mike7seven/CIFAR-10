@@ -2,6 +2,8 @@
 
 A PyTorch CNN trained on CIFAR-10 using **MPS (Metal Performance Shaders)** for GPU acceleration on Apple Silicon.
 
+Based on the official [PyTorch CIFAR-10 Tutorial](https://docs.pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html) ([source code](https://github.com/pytorch/tutorials/blob/d7a5681/beginner_source/blitz/cifar10_tutorial.py)).
+
 ## Prerequisites
 
 - M-Series Mac (M1, M2, M3, M4)
