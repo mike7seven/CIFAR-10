@@ -6,7 +6,7 @@ Based on the official [PyTorch CIFAR-10 Tutorial](https://docs.pytorch.org/tutor
 
 ## Prerequisites
 
-- M-Series Mac (M1, M2, M3, M4)
+- M-Series Mac (M1, M2, M3, M4, M5)
 - [UV](https://docs.astral.sh/uv/) package manager
 
 ## Setup
