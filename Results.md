@@ -1,38 +1,81 @@
 # Training Results
 
-## MPS vs CPU Performance
+## Small CNN (~62K params)
 
-| Device | Training Time (20 epochs) | Speedup |
-|--------|---------------------------|---------|
-| CPU    | 54.13s (2 epochs) | 1x |
-| MPS    | 12.01s (2 epochs) | **4.5x faster** |
+Original tutorial architecture with batch size 4.
 
-## MPS Training Runs Comparison
+### CPU, 2 Epochs
+
+- **Overall accuracy:** 54%
+- **Device:** cpu
+
+| Class | Accuracy |
+|-------|----------|
+| frog  | 74.0%    |
+| ship  | 67.6%    |
+| car   | 65.8%    |
+| truck | 65.2%    |
+| horse | 55.1%    |
+| bird  | 50.1%    |
+| plane | 49.2%    |
+| dog   | 43.5%    |
+| deer  | 43.3%    |
+| cat   | 35.1%    |
+
+### MPS, 2 Epochs
+
+- **Overall accuracy:** 52%
+- **Device:** mps
+
+---
+
+## Large CNN (1.98M params)
+
+Increased network width with batch size 64.
+
+| Layer | Config |
+|-------|--------|
+| conv1 | 3→64 (5x5) |
+| conv2 | 64→128 (5x5) |
+| fc1   | 3200→512 |
+| fc2   | 512→256 |
+| fc3   | 256→10 |
+
+### MPS vs CPU Comparison (2 Epochs)
+
+| Device | Time | Accuracy | Speedup |
+|--------|------|----------|---------|
+| CPU    | 54.13s | 37% | 1x |
+| MPS    | 12.01s | 39% | **4.5x faster** |
+
+### MPS Training Progression
 
 | Metric | 2 Epochs | 10 Epochs | 20 Epochs |
 |--------|----------|-----------|-----------|
-| **CNN Size** | 1.98M params | 1.98M params | 1.98M params |
-| **Batch Size** | 64 | 64 | 64 |
 | **Time** | 12.01s | 48.21s | 112.43s |
 | **Overall Accuracy** | 39% | 63% | 72% |
 | **Final Loss** | ~1.72 | ~1.02 | ~0.60 |
 
-## Per-Class Accuracy
+### Per-Class Accuracy by Epoch
 
-| Class | 2 Epochs | 10 Epochs | 20 Epochs |
-|-------|----------|-----------|-----------|
-| plane | 45.7% | 68.5% | 82.2% |
-| car | 70.4% | 77.2% | 80.4% |
-| bird | 43.5% | 39.4% | 58.2% |
-| cat | 22.5% | 45.8% | 43.5% |
-| deer | 28.1% | 47.6% | 75.1% |
-| dog | 73.8% | 66.7% | 65.4% |
-| frog | 57.4% | 74.7% | 72.0% |
-| horse | 51.7% | 65.3% | 80.5% |
-| ship | 75.1% | 80.7% | 80.8% |
-| truck | 55.8% | 73.7% | 82.6% |
+| Class | 10 Epochs | 20 Epochs |
+|-------|-----------|-----------|
+| plane | 68.5% | 82.2% |
+| car   | 77.2% | 80.4% |
+| bird  | 39.4% | 58.2% |
+| cat   | 45.8% | 43.5% |
+| deer  | 47.6% | 75.1% |
+| dog   | 66.7% | 65.4% |
+| frog  | 74.7% | 72.0% |
+| horse | 65.3% | 80.5% |
+| ship  | 80.7% | 80.8% |
+| truck | 73.7% | 82.6% |
 
-## Reproducibility Test (Seed 1111)
+---
+
+## Reproducibility (Seed 1111)
+
+Large CNN, MPS, 20 Epochs
 
 | Metric | Run 1 | Run 2 | Match |
 |--------|-------|-------|-------|
@@ -41,28 +84,30 @@
 | Loss [20, 700] | 0.573 | 0.573 | ✓ |
 | **Overall Accuracy** | **71%** | **71%** | ✓ |
 
-### Per-Class Accuracy (Seed 1111, 20 Epochs)
+### Per-Class Accuracy (Seed 1111)
 
 | Class | Accuracy |
 |-------|----------|
-| plane | 84.4% |
-| car | 77.8% |
-| bird | 55.7% |
-| cat | 65.9% |
-| deer | 57.6% |
-| dog | 53.7% |
-| frog | 72.7% |
 | horse | 84.9% |
-| ship | 80.1% |
+| plane | 84.4% |
 | truck | 82.3% |
+| ship  | 80.1% |
+| car   | 77.8% |
+| frog  | 72.7% |
+| cat   | 65.9% |
+| deer  | 57.6% |
+| bird  | 55.7% |
+| dog   | 53.7% |
 
-## CNN Architecture
+---
+
+## Architecture Comparison
 
 | Layer | Original Tutorial | Current |
 |-------|-------------------|---------|
 | conv1 | 3→6 (5x5) | 3→64 (5x5) |
 | conv2 | 6→16 (5x5) | 64→128 (5x5) |
-| fc1 | 400→120 | 3200→512 |
-| fc2 | 120→84 | 512→256 |
-| fc3 | 84→10 | 256→10 |
+| fc1   | 400→120 | 3200→512 |
+| fc2   | 120→84 | 512→256 |
+| fc3   | 84→10 | 256→10 |
 | **Total Params** | **~62K** | **~1.98M (32x larger)** |
