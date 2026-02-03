@@ -157,6 +157,29 @@ Plane (-3.4%), cat (-3.8%), horse (-6.9%), and truck (-2.1%) dropped despite ove
 
 **Bottom line:** Overall accuracy improved 71% → 78%. Gains in difficult classes outweigh small losses in easier ones.
 
+### Hypothesis: Larger Model Should Improve All Classes
+
+A larger network (e.g., ResNet-18) should mitigate the per-class accuracy drops because:
+
+1. **More capacity** to learn both general and class-specific features simultaneously
+2. **Deeper representations** can handle augmentation variations without losing orientation-sensitive patterns
+3. **Residual connections** help preserve fine-grained features through the network
+
+**Next experiment:** Increase network size and verify uniform accuracy improvement across all classes.
+
+---
+
+## Acceptable Accuracy Targets
+
+| Model | Target Accuracy | Status |
+|-------|-----------------|--------|
+| Small CNN (~62K params) | ≥50% | ✓ Achieved (54%) |
+| Large CNN (1.98M params) | ≥70% | ✓ Achieved (78%) |
+| Large CNN + Augmentation | ≥75% | ✓ Achieved (78%) |
+| ResNet-18 (~11M params) | ≥90% | Pending |
+
+**Project goal:** Demonstrate MPS acceleration benefits while achieving competitive accuracy on CIFAR-10. Current results (78%) exceed baseline expectations for a simple CNN architecture.
+
 ---
 
 ## Architecture Comparison
