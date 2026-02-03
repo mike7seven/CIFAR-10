@@ -71,5 +71,6 @@ inputs, labels = inputs.to(device), labels.to(device)
 
 - [x] Add data augmentation to improve accuracy
 - [ ] Increase network size (ResNet-18, VGG-style) and test with 20/40 epochs
+- [ ] Add learning rate scheduling (OneCycleLR) to improve convergence
 - [ ] Compile PyTorch stable/release locally to test for speed and accuracy improvements
 - [ ] Implement various seeds to find optimal accuracy
