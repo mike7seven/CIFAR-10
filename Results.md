@@ -182,6 +182,40 @@ A larger network (e.g., ResNet-18) should mitigate the per-class accuracy drops 
 
 ---
 
+## Epoch Training and Diminishing Returns
+
+Our experiments showed accuracy improvements with additional epochs:
+
+| Epochs | Accuracy | Δ from Previous |
+|--------|----------|-----------------|
+| 2      | 39%      | -               |
+| 10     | 63%      | +24%            |
+| 20     | 71%      | +8%             |
+| 40 (aug) | 78%    | +7%             |
+
+### Industry Research on Optimal Epochs
+
+Research on CIFAR-10 training indicates diminishing returns beyond certain epoch thresholds:
+
+| Epoch Range | Expected Accuracy | Notes |
+|-------------|-------------------|-------|
+| 20-30       | ~92-93%          | With learning rate scheduling |
+| 40-50       | ~93-94%          | [FPT Software achieved 94% at 50 epochs](https://fptsoftware.com/resource-center/blogs/cifar10-94-of-accuracy-by-50-epochs-with-end-to-end-training) |
+| 50-100      | ~94-95%          | Peak accuracy range |
+| 100-200     | ~95%             | Marginal 0.5-1% improvement |
+| 200+        | Diminishing      | Risk of overfitting |
+
+**Key insight:** With modern techniques (OneCycleLR, proper augmentation), [94%+ accuracy is achievable in ~50 epochs](https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/cifar10-baseline.html). Training beyond 100-200 epochs typically yields minimal gains relative to compute cost.
+
+**Our gap:** Our 78% at 40 epochs suggests room for improvement through:
+1. Learning rate scheduling (currently fixed)
+2. Larger network architecture
+3. Additional regularization (dropout, weight decay)
+
+Sources: [ResearchGate - CIFAR-10 accuracy vs epochs](https://www.researchgate.net/figure/CIFAR-10-and-test-accuracies-over-100-epochs-SGD-with-a-fixed-step-size-and-Adam-for_fig4_327592152), [arXiv - 94% in 3.29s](https://arxiv.org/html/2404.00498v2)
+
+---
+
 ## Architecture Comparison
 
 | Layer | Original Tutorial | Current |
