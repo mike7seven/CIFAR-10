@@ -1,5 +1,7 @@
 # Training Results
 
+> **Hardware:** Tests performed on Apple M4 MacBook Pro with MPS acceleration.
+
 ## Table of Contents
 
 - [Small CNN (~62K params)](#small-cnn-62k-params)
