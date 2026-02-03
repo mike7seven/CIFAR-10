@@ -101,6 +101,35 @@ Large CNN, MPS, 20 Epochs
 
 ---
 
+## Data Augmentation (Seed 1111, 20 Epochs)
+
+Large CNN, MPS with RandomCrop(32, padding=4) and RandomHorizontalFlip
+
+| Metric | Without Augmentation | With Augmentation |
+|--------|---------------------|-------------------|
+| **Time** | 98.55s | 225.20s |
+| **Overall Accuracy** | 71% | 70% |
+| **Final Loss** | 0.573 | 0.905 |
+
+### Per-Class Accuracy Comparison
+
+| Class | Without Aug | With Aug | Δ |
+|-------|-------------|----------|---|
+| plane | 84.4% | 83.0% | -1.4 |
+| car   | 77.8% | 71.5% | -6.3 |
+| bird  | 55.7% | 68.0% | **+12.3** |
+| cat   | 65.9% | 55.0% | -10.9 |
+| deer  | 57.6% | 59.4% | +1.8 |
+| dog   | 53.7% | 57.8% | +4.1 |
+| frog  | 72.7% | 75.0% | +2.3 |
+| horse | 84.9% | 70.3% | -14.6 |
+| ship  | 80.1% | 79.7% | -0.4 |
+| truck | 82.3% | 86.3% | **+4.0** |
+
+Note: Data augmentation typically requires more epochs to show full benefit. The higher loss at epoch 20 indicates the model is still learning.
+
+---
+
 ## Architecture Comparison
 
 | Layer | Original Tutorial | Current |

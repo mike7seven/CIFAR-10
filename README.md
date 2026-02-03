@@ -63,4 +63,6 @@ inputs, labels = inputs.to(device), labels.to(device)
 
 ## Future Improvements
 
-- [ ] Add data augmentation to improve accuracy
+- [x] Add data augmentation to improve accuracy
+- [ ] Compile PyTorch stable/release locally to test for speed and accuracy improvements
+- [ ] Implement various seeds to find optimal accuracy
