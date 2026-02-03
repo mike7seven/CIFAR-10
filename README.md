@@ -43,6 +43,8 @@ USE_CPU=1 uv run python cifar-tutorial.py
 - **Network:** 1.98M parameters
 - **Architecture:** 2 conv layers (64, 128 channels) + 3 FC layers
 
+See [Results.md](Results.md) for detailed training metrics and per-class accuracy.
+
 ## Key Code for MPS
 
 ```python
