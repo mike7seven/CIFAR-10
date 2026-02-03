@@ -195,7 +195,7 @@ optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 import time
 start_time = time.time()
 
-for epoch in range(20):  # loop over the dataset multiple times
+for epoch in range(40):  # loop over the dataset multiple times
 
     running_loss = 0.0
     for i, data in enumerate(trainloader, 0):
@@ -224,8 +224,11 @@ print(f'Finished Training in {training_time:.2f} seconds on {device}')
 ########################################################################
 # Let's quickly save our trained model:
 
-PATH = './cifar_net.pth'
+from datetime import datetime
+timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+PATH = f'./cifar_net_{timestamp}.pth'
 torch.save(net.state_dict(), PATH)
+print(f'Model saved to {PATH}')
 
 ########################################################################
 # See `here <https://pytorch.org/docs/stable/notes/serialization.html>`_

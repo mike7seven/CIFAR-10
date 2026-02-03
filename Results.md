@@ -1,5 +1,18 @@
 # Training Results
 
+## Table of Contents
+
+- [Small CNN (~62K params)](#small-cnn-62k-params)
+- [Large CNN (1.98M params)](#large-cnn-198m-params)
+  - [MPS vs CPU Comparison](#mps-vs-cpu-comparison-2-epochs)
+  - [MPS Training Progression](#mps-training-progression)
+  - [Per-Class Accuracy by Epoch](#per-class-accuracy-by-epoch)
+- [Reproducibility (Seed 1111)](#reproducibility-seed-1111)
+- [Data Augmentation](#data-augmentation-seed-1111)
+- [Architecture Comparison](#architecture-comparison)
+
+---
+
 ## Small CNN (~62K params)
 
 Original tutorial architecture with batch size 4.
@@ -101,32 +114,32 @@ Large CNN, MPS, 20 Epochs
 
 ---
 
-## Data Augmentation (Seed 1111, 20 Epochs)
+## Data Augmentation (Seed 1111)
 
 Large CNN, MPS with RandomCrop(32, padding=4) and RandomHorizontalFlip
 
-| Metric | Without Augmentation | With Augmentation |
-|--------|---------------------|-------------------|
-| **Time** | 98.55s | 225.20s |
-| **Overall Accuracy** | 71% | 70% |
-| **Final Loss** | 0.573 | 0.905 |
+| Metric | No Aug (20 epochs) | With Aug (20 epochs) | With Aug (40 epochs) |
+|--------|-------------------|----------------------|----------------------|
+| **Time** | 98.55s | 225.20s | 447.58s |
+| **Overall Accuracy** | 71% | 70% | **78%** |
+| **Final Loss** | 0.573 | 0.905 | 0.618 |
 
 ### Per-Class Accuracy Comparison
 
-| Class | Without Aug | With Aug | Δ |
-|-------|-------------|----------|---|
-| plane | 84.4% | 83.0% | -1.4 |
-| car   | 77.8% | 71.5% | -6.3 |
-| bird  | 55.7% | 68.0% | **+12.3** |
-| cat   | 65.9% | 55.0% | -10.9 |
-| deer  | 57.6% | 59.4% | +1.8 |
-| dog   | 53.7% | 57.8% | +4.1 |
-| frog  | 72.7% | 75.0% | +2.3 |
-| horse | 84.9% | 70.3% | -14.6 |
-| ship  | 80.1% | 79.7% | -0.4 |
-| truck | 82.3% | 86.3% | **+4.0** |
+| Class | No Aug (20 ep) | Aug (20 ep) | Aug (40 ep) | Δ (40 vs No Aug) |
+|-------|----------------|-------------|-------------|------------------|
+| plane | 84.4% | 83.0% | 81.0% | -3.4 |
+| car   | 77.8% | 71.5% | 89.8% | **+12.0** |
+| bird  | 55.7% | 68.0% | 70.5% | **+14.8** |
+| cat   | 65.9% | 55.0% | 62.1% | -3.8 |
+| deer  | 57.6% | 59.4% | 68.5% | **+10.9** |
+| dog   | 53.7% | 57.8% | 75.4% | **+21.7** |
+| frog  | 72.7% | 75.0% | 87.0% | **+14.3** |
+| horse | 84.9% | 70.3% | 78.0% | -6.9 |
+| ship  | 80.1% | 79.7% | 90.2% | **+10.1** |
+| truck | 82.3% | 86.3% | 80.2% | -2.1 |
 
-Note: Data augmentation typically requires more epochs to show full benefit. The higher loss at epoch 20 indicates the model is still learning.
+**Key findings:** Data augmentation with 40 epochs achieved **78% accuracy** (+7% over baseline). Dog class improved most (+21.7%).
 
 ---
 
