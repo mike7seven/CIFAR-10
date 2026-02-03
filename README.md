@@ -61,8 +61,15 @@ net.to(device)
 inputs, labels = inputs.to(device), labels.to(device)
 ```
 
+## Recommended Configuration
+
+- **Device:** MPS (Apple Metal)
+- **Minimum Epochs:** 20 (40+ for best results with augmentation)
+- **Data Augmentation:** Enabled for improved generalization
+
 ## Future Improvements
 
 - [x] Add data augmentation to improve accuracy
+- [ ] Increase network size (ResNet-18, VGG-style) and test with 20/40 epochs
 - [ ] Compile PyTorch stable/release locally to test for speed and accuracy improvements
 - [ ] Implement various seeds to find optimal accuracy
