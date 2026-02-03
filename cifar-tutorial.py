@@ -180,9 +180,23 @@ net.to(device)
 # Let's use a Classification Cross-Entropy loss and SGD with momentum.
 
 import torch.optim as optim
+from torch.optim.lr_scheduler import OneCycleLR
 
 criterion = nn.CrossEntropyLoss()
-optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
+optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9, weight_decay=5e-4)
+
+# OneCycleLR scheduler for improved convergence
+num_epochs = 40
+steps_per_epoch = len(trainloader)
+scheduler = OneCycleLR(
+    optimizer,
+    max_lr=0.1,
+    epochs=num_epochs,
+    steps_per_epoch=steps_per_epoch,
+    pct_start=0.3,  # 30% warmup
+    anneal_strategy='cos'
+)
+print(f'Using OneCycleLR: max_lr=0.1, epochs={num_epochs}, steps_per_epoch={steps_per_epoch}')
 
 ########################################################################
 # 4. Train the network
@@ -195,7 +209,7 @@ optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9)
 import time
 start_time = time.time()
 
-for epoch in range(40):  # loop over the dataset multiple times
+for epoch in range(num_epochs):  # loop over the dataset multiple times
 
     running_loss = 0.0
     for i, data in enumerate(trainloader, 0):
@@ -211,6 +225,7 @@ for epoch in range(40):  # loop over the dataset multiple times
         loss = criterion(outputs, labels)
         loss.backward()
         optimizer.step()
+        scheduler.step()
 
         # print statistics
         running_loss += loss.item()

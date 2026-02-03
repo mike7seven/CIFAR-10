@@ -39,7 +39,7 @@ USE_CPU=1 uv run python cifar-tutorial.py
 
 ## Results
 
-- **Accuracy:** 71% (20 epochs, seed 1111)
+- **Accuracy:** 85% (40 epochs, seed 1111, OneCycleLR + augmentation)
 - **Network:** 1.98M parameters
 - **Architecture:** 2 conv layers (64, 128 channels) + 3 FC layers
 
@@ -73,6 +73,6 @@ inputs, labels = inputs.to(device), labels.to(device)
 
 - [x] Add data augmentation to improve accuracy
 - [ ] Increase network size (ResNet-18, VGG-style) and test with 20/40 epochs
-- [ ] Add learning rate scheduling (OneCycleLR) to improve convergence
+- [x] Add learning rate scheduling (OneCycleLR) to improve convergence
 - [ ] Compile PyTorch stable/release locally to test for speed and accuracy improvements
 - [ ] Implement various seeds to find optimal accuracy
