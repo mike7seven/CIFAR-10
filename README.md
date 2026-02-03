@@ -45,6 +45,8 @@ USE_CPU=1 uv run python cifar-tutorial.py
 
 See [Results.md](Results.md) for detailed training metrics and per-class accuracy.
 
+See [Conclusion.md](Conclusion.md) for scientific findings and next steps.
+
 ## Key Code for MPS
 
 ```python
