@@ -143,6 +143,20 @@ Large CNN, MPS with RandomCrop(32, padding=4) and RandomHorizontalFlip
 
 **Key findings:** Data augmentation with 40 epochs achieved **78% accuracy** (+7% over baseline). Dog class improved most (+21.7%).
 
+### Why Some Classes Decreased
+
+Plane (-3.4%), cat (-3.8%), horse (-6.9%), and truck (-2.1%) dropped despite overall improvement. Contributing factors:
+
+1. **Class confusion from augmentation:** Horizontal flips can make planes look like birds, horses like deer, and trucks like cars.
+
+2. **Decision boundary shifts:** Large gains in dog (+21.7%), bird (+14.8%), and frog (+14.3%) shift decision boundaries, causing previously "easy" classes to lose edge cases.
+
+3. **Feature generalization trade-off:** Without augmentation, the model memorizes specific patterns. With augmentation, it learns general features that improve overall accuracy but lose class-specific shortcuts.
+
+4. **Test set mismatch:** Training sees augmented images, but test images are unaugmented. Orientation-sensitive classes may suffer.
+
+**Bottom line:** Overall accuracy improved 71% → 78%. Gains in difficult classes outweigh small losses in easier ones.
+
 ---
 
 ## Architecture Comparison
