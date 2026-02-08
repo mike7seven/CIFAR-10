@@ -12,5 +12,15 @@ wheels/
 # Claude Code
 .claude/
 
+# Project data and config
+CLAUDE.md
+data/
+
+# Model checkpoints
+*.pth
+
 # macOS
 .DS_Store
+
+# other
+.scratchpad

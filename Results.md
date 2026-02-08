@@ -4,18 +4,19 @@
 
 ## Table of Contents
 
-- [Small CNN (~62K params)](#small-cnn-62k-params)
-- [Large CNN (1.98M params)](#large-cnn-198m-params)
+- [Small Custom LeNet-style CNN (~62K params)](#small-custom-lenet-style-cnn-62k-params)
+- [Large Custom LeNet-style CNN (1.98M params)](#large-custom-lenet-style-cnn-198m-params)
   - [MPS vs CPU Comparison](#mps-vs-cpu-comparison-2-epochs)
   - [MPS Training Progression](#mps-training-progression)
   - [Per-Class Accuracy by Epoch](#per-class-accuracy-by-epoch)
 - [Reproducibility (Seed 1111)](#reproducibility-seed-1111)
 - [Data Augmentation](#data-augmentation-seed-1111)
+- [ResNet-18 (~11.2M params)](#resnet-18-112m-params)
 - [Architecture Comparison](#architecture-comparison)
 
 ---
 
-## Small CNN (~62K params)
+## Small Custom LeNet-style CNN (~62K params)
 
 Original tutorial architecture with batch size 4.
 
@@ -44,7 +45,7 @@ Original tutorial architecture with batch size 4.
 
 ---
 
-## Large CNN (1.98M params)
+## Large Custom LeNet-style CNN (1.98M params)
 
 Increased network width with batch size 64.
 
@@ -90,7 +91,7 @@ Increased network width with batch size 64.
 
 ## Reproducibility (Seed 1111)
 
-Large CNN, MPS, 20 Epochs
+Large Custom LeNet-style CNN, MPS, 20 Epochs
 
 | Metric | Run 1 | Run 2 | Match |
 |--------|-------|-------|-------|
@@ -118,7 +119,7 @@ Large CNN, MPS, 20 Epochs
 
 ## Data Augmentation (Seed 1111)
 
-Large CNN, MPS with RandomCrop(32, padding=4) and RandomHorizontalFlip
+Large Custom LeNet-style CNN, MPS with RandomCrop(32, padding=4) and RandomHorizontalFlip
 
 | Metric | No Aug (20 epochs) | With Aug (20 epochs) | With Aug (40 epochs) |
 |--------|-------------------|----------------------|----------------------|
@@ -171,7 +172,7 @@ A larger network (e.g., ResNet-18) should mitigate the per-class accuracy drops 
 
 ## Learning Rate Scheduling (Seed 1111, 40 Epochs)
 
-Large CNN with OneCycleLR (max_lr=0.1, cosine annealing, 30% warmup) + weight decay (5e-4)
+Large Custom LeNet-style CNN with OneCycleLR (max_lr=0.1, cosine annealing, 30% warmup) + weight decay (5e-4)
 
 | Metric | Fixed LR | OneCycleLR | Improvement |
 |--------|----------|------------|-------------|
@@ -202,13 +203,13 @@ Large CNN with OneCycleLR (max_lr=0.1, cosine annealing, 30% warmup) + weight de
 
 | Model | Target Accuracy | Status |
 |-------|-----------------|--------|
-| Small CNN (~62K params) | ≥50% | ✓ Achieved (54%) |
-| Large CNN (1.98M params) | ≥70% | ✓ Achieved (78%) |
-| Large CNN + Augmentation | ≥75% | ✓ Achieved (78%) |
-| Large CNN + Augmentation + LR Scheduling | ≥85% | ✓ Achieved (85%) |
-| ResNet-18 (~11M params) | ≥90% | Pending |
+| Small LeNet-style CNN (~62K params) | ≥50% | ✓ Achieved (54%) |
+| Large LeNet-style CNN (1.98M params) | ≥70% | ✓ Achieved (78%) |
+| Large LeNet-style CNN + Augmentation | ≥75% | ✓ Achieved (78%) |
+| Large LeNet-style CNN + Augmentation + LR Scheduling | ≥85% | ✓ Achieved (85%) |
+| ResNet-18 (~11M params) | ≥90% | ✓ Achieved (92%) |
 
-**Project goal:** Demonstrate MPS acceleration benefits while achieving competitive accuracy on CIFAR-10. Current results (78%) exceed baseline expectations for a simple CNN architecture.
+**Project goal:** Demonstrate MPS acceleration benefits while achieving competitive accuracy on CIFAR-10. Current results (92%) with ResNet-18 confirm the value of deeper architectures.
 
 ---
 
@@ -237,15 +238,71 @@ Research on CIFAR-10 training indicates diminishing returns beyond certain epoch
 
 **Key insight:** With modern techniques (OneCycleLR, proper augmentation), [94%+ accuracy is achievable in ~50 epochs](https://lightning.ai/docs/pytorch/stable/notebooks/lightning_examples/cifar10-baseline.html). Training beyond 100-200 epochs typically yields minimal gains relative to compute cost.
 
-**Our gap closed:** Implementing OneCycleLR improved accuracy from 78% to **85%**.
+**Our gap closed:** Implementing OneCycleLR improved accuracy from 78% to **85%**. Upgrading to ResNet-18 further improved accuracy to **92%**.
 
 Sources: [ResearchGate - CIFAR-10 accuracy vs epochs](https://www.researchgate.net/figure/CIFAR-10-and-test-accuracies-over-100-epochs-SGD-with-a-fixed-step-size-and-Adam-for_fig4_327592152), [arXiv - 94% in 3.29s](https://arxiv.org/html/2404.00498v2)
 
 ---
 
+## ResNet-18 (~11.2M params)
+
+ResNet-18 adapted for CIFAR-10 (3x3 conv1, no maxpool, 10-class FC) with OneCycleLR + augmentation.
+
+| Metric | Value |
+|--------|-------|
+| **Overall Accuracy** | **92%** |
+| **Training Time** | 1062.31s |
+| **Final Loss** | 0.031 |
+| **Device** | MPS |
+| **Epochs** | 40 |
+| **Seed** | 1111 |
+
+### Per-Class Accuracy
+
+| Class | Accuracy |
+|-------|----------|
+| car   | 96.0% |
+| horse | 95.8% |
+| ship  | 95.6% |
+| truck | 95.6% |
+| frog  | 95.2% |
+| deer  | 93.6% |
+| plane | 92.9% |
+| bird  | 89.8% |
+| dog   | 87.4% |
+| cat   | 85.6% |
+
+### Comparison vs Large LeNet-style CNN + OneCycleLR
+
+| Class | Large CNN (85%) | ResNet-18 (92%) | Δ |
+|-------|----------------|-----------------|---|
+| plane | 89.0% | 92.9% | +3.9 |
+| car   | 92.7% | 96.0% | +3.3 |
+| bird  | 80.7% | 89.8% | **+9.1** |
+| cat   | 71.9% | 85.6% | **+13.7** |
+| deer  | 86.0% | 93.6% | **+7.6** |
+| dog   | 76.9% | 87.4% | **+10.5** |
+| frog  | 89.6% | 95.2% | +5.6 |
+| horse | 89.7% | 95.8% | +6.1 |
+| ship  | 92.3% | 95.6% | +3.3 |
+| truck | 90.8% | 95.6% | +4.8 |
+
+**Key findings:** ResNet-18 improved all 10 classes. Cat showed the largest gain (+13.7%), confirming the hypothesis that a deeper network with residual connections mitigates per-class accuracy drops from augmentation. All classes now exceed 85%.
+
+---
+
 ## Architecture Comparison
 
-| Layer | Original Tutorial | Current |
+| Model | Params | Best Accuracy | Key Features |
+|-------|--------|---------------|--------------|
+| Small LeNet-style CNN (tutorial) | ~62K | 54% | Original architecture, batch size 4 |
+| Large LeNet-style CNN | ~1.98M | 78% | Wider conv layers (64, 128), batch size 64 |
+| Large LeNet-style CNN + OneCycleLR | ~1.98M | 85% | + LR scheduling, weight decay |
+| **ResNet-18** | **~11.2M** | **92%** | Residual connections, adapted for 32x32 |
+
+### LeNet-style CNN Layer Details (Small vs Large)
+
+| Layer | Original Tutorial | Large CNN |
 |-------|-------------------|---------|
 | conv1 | 3→6 (5x5) | 3→64 (5x5) |
 | conv2 | 6→16 (5x5) | 64→128 (5x5) |

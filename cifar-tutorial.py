@@ -147,31 +147,22 @@ print(' '.join(f'{classes[labels[j]]:5s}' for j in range(batch_size)))
 # take 3-channel images (instead of 1-channel images as it was defined).
 
 import torch.nn as nn
-import torch.nn.functional as F
+import torchvision.models as models
 
 
-class Net(nn.Module):
-    def __init__(self):
-        super().__init__()
-        # Increased network width: 6->64, 16->128 for better GPU utilization
-        self.conv1 = nn.Conv2d(3, 64, 5)
-        self.pool = nn.MaxPool2d(2, 2)
-        self.conv2 = nn.Conv2d(64, 128, 5)
-        self.fc1 = nn.Linear(128 * 5 * 5, 512)
-        self.fc2 = nn.Linear(512, 256)
-        self.fc3 = nn.Linear(256, 10)
-
-    def forward(self, x):
-        x = self.pool(F.relu(self.conv1(x)))
-        x = self.pool(F.relu(self.conv2(x)))
-        x = torch.flatten(x, 1) # flatten all dimensions except batch
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
+def cifar10_resnet18():
+    """ResNet-18 adapted for CIFAR-10's 32x32 images."""
+    net = models.resnet18(weights=None)
+    # Replace 7x7 conv with 3x3 conv (32x32 images are too small for 7x7 stride-2)
+    net.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
+    # Remove the aggressive max pool (preserves spatial resolution)
+    net.maxpool = nn.Identity()
+    # Replace final FC for 10 classes instead of 1000
+    net.fc = nn.Linear(net.fc.in_features, 10)
+    return net
 
 
-net = Net()
+net = cifar10_resnet18()
 net.to(device)
 
 ########################################################################
@@ -272,7 +263,7 @@ print('GroundTruth: ', ' '.join(f'{classes[labels[j]]:5s}' for j in range(4)))
 # Next, let's load back in our saved model (note: saving and re-loading the model
 # wasn't necessary here, we only did it to illustrate how to do so):
 
-net = Net()
+net = cifar10_resnet18()
 net.to(device)
 net.load_state_dict(torch.load(PATH, weights_only=True))
 
