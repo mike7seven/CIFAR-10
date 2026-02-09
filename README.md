@@ -26,6 +26,9 @@ uv sync
 # Train with MPS (default)
 uv run python cifar-tutorial.py
 
+# Visualize activations from a trained model
+uv run python visualize_activations.py
+
 # Train with CPU (for comparison)
 USE_CPU=1 uv run python cifar-tutorial.py
 ```
@@ -92,6 +95,42 @@ def cifar10_resnet18():
     net.maxpool = nn.Identity()
     net.fc = nn.Linear(net.fc.in_features, 10)
     return net
+```
+
+## Hardware DNA
+
+Each training run logs a hardware "fingerprint" to `run_log.json`, capturing the OS, chip, PyTorch version, and compute backend. This exists because floating-point math is non-associative — `(a + b) + c != a + (b + c)` — and GPU backends parallelize reductions in non-deterministic order. Over 40 epochs of backpropagation through ~11.2M parameters, these micro-differences compound into measurably distinct weight tensors on different hardware.
+
+```python
+def get_hardware_context():
+    context = {
+        "OS": platform.system(),
+        "OS_Version": platform.version(),
+        "Architecture": platform.machine(),
+        "Processor": platform.processor(),
+        "PyTorch_Version": torch.__version__,
+        "Device": "MPS" if torch.backends.mps.is_available() else "CPU",
+    }
+    if platform.system() == "Darwin":
+        brand = subprocess.check_output(
+            ["sysctl", "-n", "machdep.cpu.brand_string"]
+        ).decode().strip()
+        context["Chip"] = brand
+    return context
+```
+
+## Activation Visualization
+
+`visualize_activations.py` uses PyTorch forward hooks to capture feature maps at four depths of the ResNet-18, saving PNG grids to `activations/`:
+
+- **conv1** — edge/color detectors (64 channels, 32x32)
+- **layer1** — first residual block (64 channels, 32x32)
+- **layer2** — mid-level features (128 channels, 16x16)
+- **layer3** — higher-level features (256 channels, 8x8)
+
+```bash
+uv run python visualize_activations.py                          # most recent checkpoint
+uv run python visualize_activations.py cifar_net_20260208.pth   # specific checkpoint
 ```
 
 ## Key Code for MPS

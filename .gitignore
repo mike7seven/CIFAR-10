@@ -22,5 +22,9 @@ data/
 # macOS
 .DS_Store
 
+# Run logs and generated output (machine-specific)
+run_log.json
+activations/
+
 # other
 .scratchpad

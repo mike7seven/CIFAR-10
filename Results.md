@@ -13,6 +13,8 @@
 - [Data Augmentation](#data-augmentation-seed-1111)
 - [ResNet-18 (~11.2M params)](#resnet-18-112m-params)
 - [Architecture Comparison](#architecture-comparison)
+- [Hardware DNA](#hardware-dna)
+- [Activation Visualization](#activation-visualization)
 
 ---
 
@@ -299,6 +301,45 @@ ResNet-18 adapted for CIFAR-10 (3x3 conv1, no maxpool, 10-class FC) with OneCycl
 | Large LeNet-style CNN | ~1.98M | 78% | Wider conv layers (64, 128), batch size 64 |
 | Large LeNet-style CNN + OneCycleLR | ~1.98M | 85% | + LR scheduling, weight decay |
 | **ResNet-18** | **~11.2M** | **92%** | Residual connections, adapted for 32x32 |
+
+---
+
+## Hardware DNA
+
+Each training run captures a hardware "fingerprint" saved to `run_log.json`. Floating-point operations are non-associative: `(a + b) + c != a + (b + c)`. GPU backends (MPS, CUDA) parallelize reductions in non-deterministic order, so accumulated rounding differences across millions of backpropagation steps produce divergent final weights on different hardware — even with identical seeds.
+
+### Apple M4 Max Run
+
+| Field | Value |
+|-------|-------|
+| OS | Darwin |
+| Architecture | arm64 |
+| Chip | Apple M4 Max |
+| PyTorch | 2.10.0 |
+| Device | MPS |
+| Seed | 1111 |
+| Training Time | 1038.28s |
+| Overall Accuracy | 92% |
+| Model Params | 11,173,962 |
+
+The `run_log.json` includes full per-class accuracy and training config for cross-machine comparison. Running the same seed on CUDA or CPU hardware will produce different weight tensors due to the non-associative floating-point accumulation order.
+
+---
+
+## Activation Visualization
+
+`visualize_activations.py` hooks into four layers of the ResNet-18 during a forward pass, saving feature map grids as PNGs to `activations/`.
+
+| Layer | Channels | Resolution | What It Detects |
+|-------|----------|------------|-----------------|
+| conv1 | 64 | 32x32 | Raw edges and color gradients |
+| layer1 | 64 | 32x32 | Refined edges, basic shapes |
+| layer2 | 128 | 16x16 | Mid-level features, object parts |
+| layer3 | 256 | 8x8 | High-level abstract features, sparse and localized |
+
+**Key observation:** As depth increases, activations become sparser and more spatially compressed — the network progressively distills raw pixel data into class-discriminative features. These feature maps are the hardware-specific "fingerprint" that would differ across MPS, CUDA, and CPU backends.
+
+---
 
 ### LeNet-style CNN Layer Details (Small vs Large)
 

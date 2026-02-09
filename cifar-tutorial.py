@@ -58,9 +58,51 @@ Using ``torchvision``, it’s extremely easy to load CIFAR10.
 import torch
 import torchvision
 import torchvision.transforms as transforms
+import platform
+import subprocess
+import json
 
 # Set random seed for reproducibility
 torch.manual_seed(1111)
+
+
+########################################################################
+# Hardware DNA Logger
+# ~~~~~~~~~~~~~~~~~~~
+#
+# Captures the compute environment metadata for each training run.
+# Floating-point operations are non-associative: (a + b) + c != a + (b + c).
+# GPU backends (MPS, CUDA) parallelize reductions in non-deterministic order,
+# so the accumulated rounding differences across millions of backpropagation
+# steps produce divergent final weights on different hardware — even with
+# identical seeds. This logger records the "fingerprint" of each run so we
+# can attribute weight variance to the specific silicon that produced it.
+
+def get_hardware_context():
+    """
+    Logs the 'Hardware DNA' of the current run to account for
+    non-deterministic variance across different compute backends.
+    """
+    context = {
+        "OS": platform.system(),
+        "OS_Version": platform.version(),
+        "Architecture": platform.machine(),
+        "Processor": platform.processor(),
+        "PyTorch_Version": torch.__version__,
+        "Device": "MPS" if torch.backends.mps.is_available() else "CPU",
+    }
+
+    # Grab the specific Apple Silicon model if on a Mac
+    if platform.system() == "Darwin":
+        try:
+            brand = subprocess.check_output(
+                ["sysctl", "-n", "machdep.cpu.brand_string"]
+            ).decode().strip()
+            context["Chip"] = brand
+        except Exception:
+            context["Chip"] = "Apple Silicon (Unknown)"
+
+    return context
 
 # Set up device - use MPS (Metal Performance Shaders) on Mac if available
 # Force CPU for comparison: set USE_CPU=1
@@ -330,9 +372,57 @@ with torch.no_grad():
 
 
 # print accuracy for each class
+per_class_accuracy = {}
 for classname, correct_count in correct_pred.items():
     accuracy = 100 * float(correct_count) / total_pred[classname]
+    per_class_accuracy[classname] = round(accuracy, 1)
     print(f'Accuracy for class: {classname:5s} is {accuracy:.1f} %')
+
+########################################################################
+# Hardware DNA Report
+# ~~~~~~~~~~~~~~~~~~~
+#
+# Non-associative floating-point math means that the order in which a GPU
+# sums partial products during a matrix multiply or reduction is *not*
+# guaranteed to be the same across runs or across hardware. On Apple MPS,
+# Metal shaders schedule threadgroups whose execution order varies with
+# workload, producing subtly different rounding cascades than an NVIDIA
+# CUDA kernel or an Intel AVX reduction would.  Over 40 epochs of
+# backpropagation through ~11.2M parameters, these micro-differences
+# compound into measurably distinct weight tensors — the model's
+# "hardware fingerprint."
+
+hardware = get_hardware_context()
+print(f'\n--- [ HARDWARE DNA ] ---')
+for k, v in hardware.items():
+    print(f'{k:16}: {v}')
+print('-' * 25)
+
+# Save the full run log to JSON for cross-machine comparison
+run_log = {
+    "hardware": hardware,
+    "training": {
+        "seed": 1111,
+        "epochs": num_epochs,
+        "batch_size": batch_size,
+        "optimizer": "SGD(lr=0.001, momentum=0.9, weight_decay=5e-4)",
+        "scheduler": "OneCycleLR(max_lr=0.1, pct_start=0.3, cos)",
+        "training_time_seconds": round(training_time, 2),
+        "model": "ResNet-18 (CIFAR-10 adapted)",
+        "model_params": sum(p.numel() for p in net.parameters()),
+    },
+    "results": {
+        "overall_accuracy_pct": 100 * correct // total,
+        "per_class_accuracy_pct": per_class_accuracy,
+    },
+    "checkpoint": PATH,
+    "timestamp": timestamp,
+}
+
+log_path = './run_log.json'
+with open(log_path, 'w') as f:
+    json.dump(run_log, f, indent=2)
+print(f'Run log saved to {log_path}')
 
 ########################################################################
 # Okay, so what next?
