@@ -409,42 +409,51 @@ The `run_log.json` includes full per-class accuracy and training config for cros
 
 ResNet-18 adapted for CIFAR 32x32 images (3x3 conv1, no maxpool). SGD with OneCycleLR scheduling (max_lr=0.1, 30% warmup, cosine annealing).
 
-### CIFAR-10, 2 Epochs
+### CIFAR-10, 40 Epochs (Full Run)
 
 | Metric | Value |
 |--------|-------|
-| **Overall Accuracy** | **74%** |
-| **Training Time** | 71.19s |
+| **Overall Accuracy** | **94%** |
+| **Training Time** | 1423.39s |
+| **Final Loss** | 0.025 |
 | **Device** | GPU (Metal) |
 | **Optimizer** | SGD + OneCycleLR |
 | **Seed** | 1111 |
-| **Weights** | `cifar_mlx_20260215_092821.npz` |
+| **Weights** | `cifar_mlx_20260215_103051.npz` |
 
 #### Per-Class Accuracy
 
 | Class | Accuracy |
 |-------|----------|
-| automobile | 89.5% |
-| ship | 87.4% |
-| truck | 86.3% |
-| frog | 81.2% |
-| airplane | 76.4% |
-| horse | 71.8% |
-| bird | 66.7% |
-| deer | 65.5% |
-| dog | 64.3% |
-| cat | 52.0% |
+| automobile | 97.2% |
+| frog | 96.4% |
+| airplane | 95.8% |
+| ship | 95.7% |
+| horse | 95.4% |
+| deer | 95.1% |
+| truck | 94.8% |
+| bird | 93.6% |
+| dog | 89.4% |
+| cat | 86.7% |
+
+### CIFAR-10, 2 Epochs (Smoke Test)
+
+| Metric | Value |
+|--------|-------|
+| **Overall Accuracy** | **74%** |
+| **Training Time** | 71.19s |
+| **Weights** | `cifar_mlx_20260215_092821.npz` |
 
 ---
 
 ## MLX Architecture Comparison
 
-| Model | Params | Accuracy (2 ep) | Time | Optimizer |
-|-------|--------|------------------|------|-----------|
-| Small CNN | ~0.57M | 71% | 13.61s | AdamW (lr=3e-4) |
-| **ResNet-18** | **~11.2M** | **74%** | 71.19s | SGD + OneCycleLR |
+| Model | Params | Accuracy | Epochs | Time | Optimizer |
+|-------|--------|----------|--------|------|-----------|
+| Small CNN | ~0.57M | 71% | 2 | 13.61s | AdamW (lr=3e-4) |
+| **ResNet-18** | **~11.2M** | **94%** | **40** | **1423.39s** | SGD + OneCycleLR |
 
-**Note:** These are 2-epoch smoke tests to validate the implementation. Full training runs (30-40 epochs) are expected to significantly improve accuracy. The Small CNN's strong 2-epoch showing relative to ResNet-18 reflects AdamW's faster early convergence; OneCycleLR is designed for longer training schedules.
+**Key finding:** MLX ResNet-18 achieved **94% accuracy** on CIFAR-10 — 2 points higher than the PyTorch MPS equivalent (92%) with the same architecture and hyperparameters. All 10 classes exceed 86%.
 
 ---
 
@@ -560,18 +569,18 @@ Both frameworks tested on Apple M4 Max, CIFAR-10, 2 epochs, seed 1111.
 
 *Note: Different model sizes and optimizers — not a direct comparison. The PyTorch Large CNN used a fixed learning rate with no scheduling.*
 
-### ResNet-18 Comparison (2 Epochs)
+### ResNet-18 Comparison (40 Epochs, CIFAR-10)
 
 | | PyTorch ResNet-18 | MLX ResNet-18 |
 |---|---|---|
 | **Framework** | PyTorch 2.10 (MPS) | MLX 0.30.6 (Metal) |
 | **Params** | 11.2M | 11.2M |
-| **Accuracy** | 74%* | 74% |
-| **Time** | 71.19s** | 71.19s |
+| **Accuracy** | 92% | **94%** |
+| **Training Time** | 1062s | 1423s |
+| **Final Loss** | 0.031 | 0.025 |
 | **Optimizer** | SGD + OneCycleLR | SGD + OneCycleLR |
 
-*\* PyTorch CIFAR-10 ResNet-18 2-epoch result estimated from early training loss progression. The recorded 92% result used 40 epochs.*
-*\*\* PyTorch time is from the CIFAR-100 run (48.74s); CIFAR-10 2-epoch run was not separately timed.*
+MLX achieved **+2% higher accuracy** but trained **34% slower** than PyTorch MPS. The accuracy gap likely comes from differences in floating-point accumulation order between Metal (MLX) and MPS (PyTorch) backends, plus minor differences in batch normalization implementations.
 
 ### CIFAR-100 Comparison (2 Epochs)
 
@@ -593,6 +602,6 @@ Both frameworks tested on Apple M4 Max, CIFAR-10, 2 epochs, seed 1111.
 | PyTorch Large LeNet + OneCycleLR | CIFAR-10 | ≥85% | ✓ Achieved (85%) |
 | PyTorch ResNet-18 (~11.2M) | CIFAR-10 | ≥90% | ✓ Achieved (92%) |
 | MLX Small CNN (~0.57M) | CIFAR-10 | ≥65% | ✓ Achieved (71% @ 2ep) |
-| MLX ResNet-18 (~11.2M) | CIFAR-10 | ≥90% | Pending full run |
+| MLX ResNet-18 (~11.2M) | CIFAR-10 | ≥90% | ✓ Achieved (94%) |
 | PyTorch ResNet-18 | CIFAR-100 | ≥60% | Pending full run |
 | MLX ResNet-18 | CIFAR-100 | ≥60% | Pending full run |

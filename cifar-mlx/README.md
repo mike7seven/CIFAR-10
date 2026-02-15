@@ -62,25 +62,34 @@ uv run python train.py --cpu
 
 > All results on Apple M4 Max, MLX 0.30.6, seed 1111.
 
-### CIFAR-10 (2-Epoch Smoke Tests)
+### CIFAR-10
 
-| Model | Params | Accuracy | Time | Optimizer |
-|-------|--------|----------|------|-----------|
-| Small CNN | 0.57M | **71%** | 13.61s | AdamW (lr=3e-4) |
-| ResNet-18 | 11.17M | **74%** | 71.19s | SGD + OneCycleLR |
+| Model | Params | Accuracy | Epochs | Time | Optimizer |
+|-------|--------|----------|--------|------|-----------|
+| Small CNN | 0.57M | 71% | 2 | 13.61s | AdamW (lr=3e-4) |
+| **ResNet-18** | **11.17M** | **94%** | **40** | **1423s** | SGD + OneCycleLR |
 
-### CIFAR-100 (2-Epoch Smoke Test)
+### CIFAR-100
 
-| Model | Params | Accuracy | Time | Optimizer |
-|-------|--------|----------|------|-----------|
-| Small CNN | 0.58M | **28%** | 13.25s | AdamW (lr=3e-4) |
+| Model | Params | Accuracy | Epochs | Time | Optimizer |
+|-------|--------|----------|--------|------|-----------|
+| Small CNN | 0.58M | 28% | 2 | 13.25s | AdamW (lr=3e-4) |
+
+### vs PyTorch (ResNet-18, CIFAR-10, 40 epochs)
+
+| | MLX (Metal) | PyTorch (MPS) |
+|---|---|---|
+| **Accuracy** | **94%** | 92% |
+| **Training Time** | 1423s | 1062s |
+| **Final Loss** | 0.025 | 0.031 |
 
 ### Saved Weights
 
-| File | Model | Dataset | Epochs |
-|------|-------|---------|--------|
-| `cifar_mlx_20260215_092520.npz` | Small CNN | CIFAR-10 | 2 |
-| `cifar_mlx_20260215_092821.npz` | ResNet-18 | CIFAR-10 | 2 |
-| `cifar_mlx_20260215_092845.npz` | Small CNN | CIFAR-100 | 2 |
+| File | Model | Dataset | Epochs | Accuracy |
+|------|-------|---------|--------|----------|
+| `cifar_mlx_20260215_092520.npz` | Small CNN | CIFAR-10 | 2 | 71% |
+| `cifar_mlx_20260215_092821.npz` | ResNet-18 | CIFAR-10 | 2 | 74% |
+| `cifar_mlx_20260215_092845.npz` | Small CNN | CIFAR-100 | 2 | 28% |
+| `cifar_mlx_20260215_103051.npz` | ResNet-18 | CIFAR-10 | 40 | 94% |
 
 Full per-class accuracy tables are in the root [Results.md](../Results.md).

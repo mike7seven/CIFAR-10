@@ -234,9 +234,17 @@ if __name__ == "__main__":
                         default="none", help="LR scheduler (default: none)")
     parser.add_argument("--cpu", action="store_true",
                         help="Force CPU instead of GPU")
+    parser.add_argument("--memory-limit", type=float, default=None,
+                        help="Metal GPU memory limit in GB (e.g. 64 for 64GB)")
     args = parser.parse_args()
 
     if args.cpu:
         mx.set_default_device(mx.cpu)
 
+    if args.memory_limit is not None:
+        limit_bytes = int(args.memory_limit * 1024**3)
+        mx.set_memory_limit(limit_bytes)
+        print(f"Metal memory limit set to {args.memory_limit:.0f}GB")
+
+    print(f"Device: {mx.default_device()}")
     train(args)
