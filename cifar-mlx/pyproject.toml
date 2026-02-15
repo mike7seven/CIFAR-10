@@ -1,0 +1,10 @@
+[project]
+name = "cifar-mlx"
+version = "0.1.0"
+description = "CIFAR-10/100 classifier using Apple MLX framework"
+requires-python = ">=3.12"
+dependencies = [
+    "mlx>=0.30.0",
+    "mlx-data>=0.2.0",
+    "numpy",
+]

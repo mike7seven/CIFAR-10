@@ -55,6 +55,7 @@ We will do the following steps in order:
 
 Using ``torchvision``, it’s extremely easy to load CIFAR10.
 """
+import argparse
 import torch
 import torchvision
 import torchvision.transforms as transforms
@@ -62,8 +63,23 @@ import platform
 import subprocess
 import json
 
+########################################################################
+# CLI Arguments
+# ~~~~~~~~~~~~~
+
+parser = argparse.ArgumentParser(description='CIFAR image classifier training')
+parser.add_argument('--dataset', choices=['cifar10', 'cifar100'], default='cifar10',
+                    help='Dataset to train on (default: cifar10)')
+parser.add_argument('--epochs', type=int, default=40,
+                    help='Number of training epochs (default: 40)')
+parser.add_argument('--batch-size', type=int, default=64,
+                    help='Training batch size (default: 64)')
+parser.add_argument('--seed', type=int, default=1111,
+                    help='Random seed for reproducibility (default: 1111)')
+args = parser.parse_args()
+
 # Set random seed for reproducibility
-torch.manual_seed(1111)
+torch.manual_seed(args.seed)
 
 
 ########################################################################
@@ -141,20 +157,25 @@ transform_test = transforms.Compose([
     transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 ])
 
-batch_size = 64  # Increased from 4 for better GPU utilization
+batch_size = args.batch_size
 
-trainset = torchvision.datasets.CIFAR10(root='./data', train=True,
-                                        download=True, transform=transform_train)
+# Select dataset: CIFAR-10 or CIFAR-100
+DatasetClass = torchvision.datasets.CIFAR100 if args.dataset == 'cifar100' else torchvision.datasets.CIFAR10
+num_classes = 100 if args.dataset == 'cifar100' else 10
+
+trainset = DatasetClass(root='./data', train=True,
+                        download=True, transform=transform_train)
 trainloader = torch.utils.data.DataLoader(trainset, batch_size=batch_size,
                                           shuffle=True, num_workers=0)
 
-testset = torchvision.datasets.CIFAR10(root='./data', train=False,
-                                       download=True, transform=transform_test)
+testset = DatasetClass(root='./data', train=False,
+                       download=True, transform=transform_test)
 testloader = torch.utils.data.DataLoader(testset, batch_size=batch_size,
                                          shuffle=False, num_workers=0)
 
-classes = ('plane', 'car', 'bird', 'cat',
-           'deer', 'dog', 'frog', 'horse', 'ship', 'truck')
+# Class names from the dataset itself
+classes = tuple(trainset.classes)
+print(f'Dataset: {args.dataset.upper()} ({num_classes} classes, {len(trainset)} train / {len(testset)} test)')
 
 ########################################################################
 # Let us show some of the training images, for fun.
@@ -192,19 +213,19 @@ import torch.nn as nn
 import torchvision.models as models
 
 
-def cifar10_resnet18():
-    """ResNet-18 adapted for CIFAR-10's 32x32 images."""
+def cifar_resnet18(num_classes=10):
+    """ResNet-18 adapted for CIFAR 32x32 images."""
     net = models.resnet18(weights=None)
     # Replace 7x7 conv with 3x3 conv (32x32 images are too small for 7x7 stride-2)
     net.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
     # Remove the aggressive max pool (preserves spatial resolution)
     net.maxpool = nn.Identity()
-    # Replace final FC for 10 classes instead of 1000
-    net.fc = nn.Linear(net.fc.in_features, 10)
+    # Replace final FC for num_classes instead of 1000
+    net.fc = nn.Linear(net.fc.in_features, num_classes)
     return net
 
 
-net = cifar10_resnet18()
+net = cifar_resnet18(num_classes=num_classes)
 net.to(device)
 
 ########################################################################
@@ -219,7 +240,7 @@ criterion = nn.CrossEntropyLoss()
 optimizer = optim.SGD(net.parameters(), lr=0.001, momentum=0.9, weight_decay=5e-4)
 
 # OneCycleLR scheduler for improved convergence
-num_epochs = 40
+num_epochs = args.epochs
 steps_per_epoch = len(trainloader)
 scheduler = OneCycleLR(
     optimizer,
@@ -305,7 +326,7 @@ print('GroundTruth: ', ' '.join(f'{classes[labels[j]]:5s}' for j in range(4)))
 # Next, let's load back in our saved model (note: saving and re-loading the model
 # wasn't necessary here, we only did it to illustrate how to do so):
 
-net = cifar10_resnet18()
+net = cifar_resnet18(num_classes=num_classes)
 net.to(device)
 net.load_state_dict(torch.load(PATH, weights_only=True))
 
@@ -402,13 +423,15 @@ print('-' * 25)
 run_log = {
     "hardware": hardware,
     "training": {
-        "seed": 1111,
+        "dataset": args.dataset,
+        "num_classes": num_classes,
+        "seed": args.seed,
         "epochs": num_epochs,
         "batch_size": batch_size,
         "optimizer": "SGD(lr=0.001, momentum=0.9, weight_decay=5e-4)",
         "scheduler": "OneCycleLR(max_lr=0.1, pct_start=0.3, cos)",
         "training_time_seconds": round(training_time, 2),
-        "model": "ResNet-18 (CIFAR-10 adapted)",
+        "model": f"ResNet-18 ({args.dataset.upper()} adapted)",
         "model_params": sum(p.numel() for p in net.parameters()),
     },
     "results": {
