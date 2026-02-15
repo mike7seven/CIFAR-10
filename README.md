@@ -1,8 +1,18 @@
-# CIFAR-10 Classifier on M-Series Macs
+# CIFAR-10/100 Classifier on M-Series Macs
 
-A PyTorch CNN trained on CIFAR-10 using **MPS (Metal Performance Shaders)** for GPU acceleration on Apple Silicon.
+Image classifiers trained on CIFAR-10 and CIFAR-100 using two frameworks on Apple Silicon:
+
+- **PyTorch** with MPS (Metal Performance Shaders) acceleration
+- **Apple MLX** with native Metal — no MPS translation layer
 
 Based on the official [PyTorch CIFAR-10 Tutorial](https://docs.pytorch.org/tutorials/beginner/blitz/cifar10_tutorial.html) ([source code](https://github.com/pytorch/tutorials/blob/d7a5681/beginner_source/blitz/cifar10_tutorial.py)).
+
+## Best Results
+
+| Framework | Model | Dataset | Accuracy | Time |
+|-----------|-------|---------|----------|------|
+| **MLX** | ResNet-18 | CIFAR-10 | **94%** | 1423s |
+| **PyTorch** | ResNet-18 | CIFAR-10 | **92%** | 1062s |
 
 ## Prerequisites
 
@@ -16,22 +26,45 @@ Based on the official [PyTorch CIFAR-10 Tutorial](https://docs.pytorch.org/tutor
 git clone https://github.com/mike7seven/CIFAR-10.git
 cd CIFAR-10
 
-# Install dependencies with UV
+# Install PyTorch dependencies
 uv sync
+
+# Install MLX dependencies (separate venv)
+cd cifar-mlx && uv sync
 ```
 
 ## Usage
 
+### PyTorch
+
 ```bash
-# Train with MPS (default)
+# Train on CIFAR-10 (default)
 uv run python cifar-tutorial.py
 
-# Visualize activations from a trained model
-uv run python visualize_activations.py
+# Train on CIFAR-100
+uv run python cifar-tutorial.py --dataset cifar100
 
-# Train with CPU (for comparison)
-USE_CPU=1 uv run python cifar-tutorial.py
+# All CLI flags: --dataset, --epochs, --batch-size, --seed
 ```
+
+### MLX
+
+```bash
+cd cifar-mlx
+
+# Small CNN, quick experiment
+uv run python train.py
+
+# ResNet-18 with OneCycleLR (best accuracy)
+uv run python train.py --model resnet18 --scheduler onecycle --epochs 40
+
+# CIFAR-100
+uv run python train.py --dataset cifar100 --model resnet18 --scheduler onecycle
+
+# All CLI flags: --dataset, --model, --epochs, --batch-size, --seed, --lr, --scheduler, --cpu, --memory-limit
+```
+
+> **Warning:** Never run PyTorch and MLX training jobs in parallel — both saturate the GPU. Always run sequentially.
 
 ## MPS Performance
 
@@ -40,17 +73,18 @@ USE_CPU=1 uv run python cifar-tutorial.py
 | CPU    | ~270s | 1x |
 | MPS    | ~99s | **2.7x faster** |
 
-## Results
+## PyTorch vs MLX (ResNet-18, CIFAR-10, 40 epochs)
 
-- **Accuracy:** 92% (40 epochs, seed 1111, OneCycleLR + augmentation)
-- **Network:** ~11.2M parameters
-- **Architecture:** ResNet-18 adapted for CIFAR-10 (3x3 conv1, no maxpool)
+| | PyTorch (MPS) | MLX (Metal) |
+|---|---|---|
+| **Accuracy** | 92% | **94%** |
+| **Training Time** | 1062s | 1423s |
+| **Final Loss** | 0.031 | 0.025 |
+| **Framework Version** | PyTorch 2.10 | MLX 0.30.6 |
 
-See [Results.md](Results.md) for detailed training metrics and per-class accuracy.
+MLX achieved +2% higher accuracy but trained 34% slower. MLX is more optimized for transformer/LLM workloads; CNN performance is expected to improve in future releases.
 
-See [Conclusion.md](Conclusion.md) for scientific findings and next steps.
-
-## Model Progression
+## Model Progression (PyTorch)
 
 ### 1. Small Custom LeNet-style CNN (~62K params) — 54% accuracy
 
@@ -84,40 +118,40 @@ class Net(nn.Module):
         self.fc3 = nn.Linear(256, 10)
 ```
 
-### 3. ResNet-18 (~11.2M params) — 92% accuracy (current)
+### 3. ResNet-18 (~11.2M params) — 92% accuracy
 
-Switched to `torchvision.models.resnet18`, adapted for CIFAR-10's 32x32 images:
+Switched to `torchvision.models.resnet18`, adapted for CIFAR's 32x32 images:
 
 ```python
-def cifar10_resnet18():
+def cifar_resnet18(num_classes=10):
     net = models.resnet18(weights=None)
     net.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=1, padding=1, bias=False)
     net.maxpool = nn.Identity()
-    net.fc = nn.Linear(net.fc.in_features, 10)
+    net.fc = nn.Linear(net.fc.in_features, num_classes)
     return net
 ```
 
+## MLX Implementation
+
+The `cifar-mlx/` subdirectory contains a parallel implementation using Apple's [MLX framework](https://github.com/ml-explore/mlx), which runs natively on Apple Silicon via Metal.
+
+### Models
+
+- **SmallCNN** (~0.57M params) — 6-conv CNN with BatchNorm, residual connections, dropout
+- **ResNet-18** (~11.2M params) — Same CIFAR adaptation as PyTorch version, in NHWC format
+
+### Key Differences from PyTorch
+
+- **NHWC format** — tensors are `(batch, height, width, channels)`, not NCHW
+- **Lazy evaluation** — must call `mx.eval()` after each optimizer update
+- **Functional gradients** — uses `nn.value_and_grad()` instead of `.backward()`
+- **Unified memory** — no `.to(device)` calls needed
+
+See [cifar-mlx/README.md](cifar-mlx/README.md) for full MLX documentation.
+
 ## Hardware DNA
 
-Each training run logs a hardware "fingerprint" to `run_log.json`, capturing the OS, chip, PyTorch version, and compute backend. This exists because floating-point math is non-associative — `(a + b) + c != a + (b + c)` — and GPU backends parallelize reductions in non-deterministic order. Over 40 epochs of backpropagation through ~11.2M parameters, these micro-differences compound into measurably distinct weight tensors on different hardware.
-
-```python
-def get_hardware_context():
-    context = {
-        "OS": platform.system(),
-        "OS_Version": platform.version(),
-        "Architecture": platform.machine(),
-        "Processor": platform.processor(),
-        "PyTorch_Version": torch.__version__,
-        "Device": "MPS" if torch.backends.mps.is_available() else "CPU",
-    }
-    if platform.system() == "Darwin":
-        brand = subprocess.check_output(
-            ["sysctl", "-n", "machdep.cpu.brand_string"]
-        ).decode().strip()
-        context["Chip"] = brand
-    return context
-```
+Each training run logs a hardware "fingerprint" to `run_log.json`, capturing the OS, chip, framework version, and compute backend. This exists because floating-point math is non-associative — `(a + b) + c != a + (b + c)` — and GPU backends parallelize reductions in non-deterministic order. Over 40 epochs of backpropagation through ~11.2M parameters, these micro-differences compound into measurably distinct weight tensors on different hardware.
 
 ## Activation Visualization
 
@@ -133,34 +167,18 @@ uv run python visualize_activations.py                          # most recent ch
 uv run python visualize_activations.py cifar_net_20260208.pth   # specific checkpoint
 ```
 
-## Key Code for MPS
+## Detailed Results
 
-```python
-# Device detection for M-Series Macs
-if torch.backends.mps.is_available():
-    device = torch.device('mps')
-elif torch.cuda.is_available():
-    device = torch.device('cuda:0')
-else:
-    device = torch.device('cpu')
+See [Results.md](Results.md) for full training metrics, per-class accuracy tables, and framework comparisons.
 
-# Move model and data to MPS
-net.to(device)
-inputs, labels = inputs.to(device), labels.to(device)
-```
-
-## Recommended Configuration
-
-- **Device:** MPS (Apple Metal)
-- **Minimum Epochs:** 20 (40+ for best results with augmentation)
-- **Data Augmentation:** Enabled for improved generalization
+See [Conclusion.md](Conclusion.md) for scientific findings and next steps.
 
 ## Future Improvements
 
 - [x] Add data augmentation to improve accuracy
 - [x] Increase network size (ResNet-18) and test with 40 epochs
 - [x] Add learning rate scheduling (OneCycleLR) to improve convergence
-- ~[ ] Compile PyTorch stable/release locally to test for speed and accuracy improvements~ (no longer pursuing CPU benchmarking)
+- [x] Port to Apple MLX framework for native Metal comparison
+- [x] Add CIFAR-100 support to both frameworks
+- [ ] Full CIFAR-100 training runs (PyTorch + MLX, 40 epochs)
 - [ ] Implement various seeds to find optimal accuracy
-
-> **Note:** CPU benchmarking has been retired. All future training and testing will use MPS exclusively.
