@@ -12,8 +12,7 @@ wheels/
 # Claude Code
 .claude/
 
-# Project data and config
-CLAUDE.md
+# Project data
 data/
 
 # Model checkpoints
